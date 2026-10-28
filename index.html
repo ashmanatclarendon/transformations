@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Transformations – a Capybara game</title>
+<meta name="description" content="A puzzle game for practising transformations of functions (VCE Mathematical Methods).">
+<meta name="theme-color" content="#f6f1e7">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Transformations">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root{--bg:#f6f1e7;--ink:#2b2a28;--blue:#2f6fde;--gold:#e0a21b;--panel:#fffaf0;--muted:#7a7468;--ok:#2e9d5b;--line:#e5dccb}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+header h1{font-size:18px;margin:0;flex:1;min-width:180px}
+button{font:inherit;border:1px solid #d6cbb5;background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer;color:var(--ink)}
+button:hover:not(:disabled){background:#fdf3df}
+button:disabled{opacity:.4;cursor:default}
+select{font:inherit;padding:7px;border-radius:10px;border:1px solid #d6cbb5;background:#fff;max-width:100%}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;padding:14px;max-width:1350px;margin:0 auto}
+@media(max-width:920px){.main{grid-template-columns:1fr}}
+.stage{position:relative;background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden}
+#g{width:100%;height:min(72vh,640px);display:block}
+.legend{position:absolute;left:12px;top:10px;font-size:13px;background:rgba(255,255,255,.85);padding:6px 10px;border-radius:8px}
+.legend span{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.panel{background:var(--panel);border-radius:14px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:12px}
+.lvl{font-size:13px;color:var(--muted)}
+.lvl b{display:block;font-size:17px;color:var(--ink)}
+.dots{display:flex;gap:5px;flex-wrap:wrap}
+.dot{width:12px;height:12px;border-radius:50%;background:#e8dfcd}
+.dot.done{background:var(--ok)} .dot.now{background:var(--gold)}
+.eq{border-radius:10px;padding:8px 10px;font-size:19px;font-family:"Cambria Math","Times New Roman",serif;line-height:2}
+.eq small{display:block;font-family:system-ui,sans-serif;font-size:12px;line-height:1.2;color:var(--muted)}
+.eq.t{background:#fdf1d3;border:2px solid var(--gold)}
+.eq.c{background:#e6eefc;border:2px solid var(--blue)}
+.eq.f{background:#fff;border:1px solid var(--line);font-size:16px}
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;font-size:.8em;line-height:1.1;margin:0 2px}
+.fr>span:first-child{border-bottom:1px solid currentColor;padding:0 2px}
+.ov{border-top:1px solid currentColor;padding-left:2px}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.tools button{font-size:13.5px;padding:9px 8px;text-align:left;line-height:1.25}
+.tools button.nt{font-family:"Cambria Math","Times New Roman",serif;font-size:17px;text-align:center}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.log{font-size:13px;max-height:150px;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+.log div{padding:3px 0;border-bottom:1px dashed #eee}
+.log div:last-child{border-bottom:0}
+.log .ok{color:var(--ok);font-weight:600}
+.instr{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.5;display:none}
+.instr.show{display:block}
+#corner{width:96px;height:62px;transition:transform .35s}
+#corner.huh{transform:rotate(-12deg) translateY(-3px)}
+.overlay{position:fixed;inset:0;background:rgba(40,30,20,.45);display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
+.overlay.show{display:flex}
+.modal{background:var(--panel);border-radius:16px;padding:18px;max-width:560px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.modal h2{margin:0 0 8px;font-size:19px}
+.modal input{font:inherit;font-size:20px;padding:8px 10px;border-radius:10px;border:1px solid #cdbfa3;width:100%}
+.err{color:#b33;font-size:13px;min-height:18px;margin-top:4px}
+#spring{width:100%;height:auto;border-radius:12px;display:block;margin:6px 0 12px}
+.flash{animation:fl .9s}
+@keyframes fl{0%{box-shadow:0 0 0 0 rgba(46,157,91,.7)}100%{box-shadow:0 0 0 18px rgba(46,157,91,0)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Transformations</h1>
+  <select id="levelSel" aria-label="Level"></select>
+  <button id="muteBtn" title="Sound">🔔</button>
+</header>
+
+<div class="main">
+  <div class="stage" id="stage">
+    <canvas id="g"></canvas>
+    <div class="legend"><span style="background:var(--gold)"></span>Target &nbsp; <span style="background:var(--blue)"></span>Your graph</div>
+  </div>
+
+  <div class="panel" id="panel">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div class="lvl" id="lvlName"></div>
+      <canvas id="corner" width="192" height="124" title="Capybara"></canvas>
+    </div>
+    <div class="dots" id="dots"></div>
+
+    <div class="eq f" id="eqF"></div>
+    <div class="eq t"><small>Target</small><span id="eqT"></span></div>
+    <div class="eq c"><small id="curLbl">Your graph</small><span id="eqC"></span></div>
+
+    <div class="tools" id="tools"></div>
+
+    <div class="row">
+      <button id="undoBtn">↶ Undo</button>
+      <button id="resetBtn">Start again</button>
+      <button id="skipBtn">New problem</button>
+      <button id="instrBtn">Instruction</button>
+    </div>
+    <label class="row" id="riderRow" style="font-size:14px"><input type="checkbox" id="rider"> Capybara rides a key point</label>
+    <div class="instr" id="instr"></div>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<!-- value entry -->
+<div class="overlay" id="askOv">
+  <div class="modal">
+    <h2 id="askTitle"></h2>
+    <div id="askHint" style="font-size:14px;color:var(--muted);margin-bottom:8px"></div>
+    <input id="askIn" autocomplete="off" inputmode="text">
+    <div class="err" id="askErr"></div>
+    <div class="row" style="justify-content:space-between">
+      <div class="row"><button id="piBtn">π</button><button id="slashBtn">/</button><button id="minusBtn" title="Change sign">±</button></div>
+      <div class="row"><button id="askCancel">Cancel</button><button id="askOk" style="background:var(--blue);color:#fff;border-color:var(--blue)">Apply</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- hot spring -->
+<div class="overlay" id="springOv">
+  <div class="modal" style="text-align:center">
+    <h2 id="springTitle"></h2>
+    <canvas id="spring" width="1040" height="460"></canvas>
+    <button id="springNext" style="background:var(--ok);color:#fff;border-color:var(--ok)">Next level</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+const store=(()=>{const m={};try{const k='__t';window.localStorage.setItem(k,'1');window.localStorage.removeItem(k);return window.localStorage;}catch(e){return{getItem:k=>k in m?m[k]:null,setItem:(k,v)=>{m[k]=String(v);}};}})();
+const PI = Math.PI;
+const $ = id => document.getElementById(id);
+
+/* ---------- number formatting ---------- */
+function ratio(v){for(let q=1;q<=12;q++){const p=v*q;if(Math.abs(p-Math.round(p))<1e-7)return[Math.round(p),q];}return null;}
+const frac=(n,d)=>`<span class="fr"><span>${n}</span><span>${d}</span></span>`;
+function fmt(v,plain){
+  const neg=v<-1e-12; v=Math.abs(v); let s; let r=ratio(v);
+  if(r){s=r[1]===1?String(r[0]):(plain?`${r[0]}/${r[1]}`:frac(r[0],r[1]));}
+  else{r=ratio(v/PI);
+    if(r){const n=(r[0]===1?'':r[0])+'π';s=r[1]===1?n:(plain?`${n}/${r[1]}`:frac(n,r[1]));}
+    else s=String(+v.toFixed(2));}
+  return (neg?'−':'')+s;
+}
+const near=(a,b)=>Math.abs(a-b)<1e-9;
+
+/* ---------- parent functions ---------- */
+const FUNCS={
+  x2:{f:x=>x*x,key:[1,1],r:(p,i,s)=>p+(s?'x':`(${i})`)+'<sup>2</sup>'},
+  x3:{f:x=>x*x*x,key:[1,1],r:(p,i,s)=>p+(s?'x':`(${i})`)+'<sup>3</sup>'},
+  sqrt:{f:x=>x>=0?Math.sqrt(x):NaN,key:[1,1],r:(p,i)=>p+`√<span class="ov">${i}</span>`},
+  recip:{f:x=>1/x,key:[1,1],r:(p,i)=>p+frac('1',i)},
+  exp:{f:x=>Math.exp(x),key:[0,1],r:(p,i)=>p+`e<sup>${i}</sup>`},
+  ln:{f:x=>x>0?Math.log(x):NaN,key:[1,0],r:(p,i)=>p+`log<sub>e</sub>(${i})`},
+  sin:{f:Math.sin,key:[PI/2,1],trig:1,r:(p,i)=>p+`sin(${i})`},
+  cos:{f:Math.cos,key:[0,1],trig:1,r:(p,i)=>p+`cos(${i})`}
+};
+/* A graph is described by params {a,b,c,d}: the point (x0, f(x0)) maps to (a·x0+b, c·f(x0)+d),
+   i.e. y = c·f((x−b)/a) + d */
+const ID={a:1,b:0,c:1,d:0};
+function evalP(p,fn,x){const u=(x-p.b)/p.a;const y=p.c*FUNCS[fn].f(u)+p.d;return isFinite(y)?y:NaN;}
+
+function eqHTML(p,fn,expand){
+  const n=1/p.a,B=-p.b; let inner,simple=false;
+  const bs=near(B,0)?'':(B>0?' + ':' − ')+fmt(Math.abs(B));
+  if(expand&&!near(B,0)){const k=n*B;
+    inner=(near(n,1)?'':near(n,-1)?'−':fmt(n))+'x'+(k>0?' + ':' − ')+fmt(Math.abs(k));}
+  else if(near(B,0)){ if(near(n,1)){inner='x';simple=true;} else if(near(n,-1))inner='−x'; else inner=fmt(n)+'x'; }
+  else{ if(near(n,1))inner='x'+bs; else if(near(n,-1))inner='−(x'+bs+')'; else inner=fmt(n)+'(x'+bs+')'; }
+  const A=p.c,pre=near(A,1)?'':near(A,-1)?'−':fmt(A);
+  const C=p.d,cs=near(C,0)?'':(C>0?' + ':' − ')+fmt(Math.abs(C));
+  return 'y = '+FUNCS[fn].r(pre,inner,simple)+cs;
+}
+
+/* ---------- moves ---------- */
+function applyMove(p,m){let{a,b,c,d}=p;
+  switch(m.t){case'tx':b+=m.v;break;case'ty':d+=m.v;break;
+    case'dx':c*=m.v;d*=m.v;break;case'dy':a*=m.v;b*=m.v;break;
+    case'rx':c=-c;d=-d;break;case'ry':a=-a;b=-b;break;}
+  return{a,b,c,d};}
+function words(m){const u=x=>near(Math.abs(x),1)?'unit':'units';
+  switch(m.t){
+    case'tx':return`Translation of ${fmt(Math.abs(m.v),1)} ${u(m.v)} in the ${m.v>0?'positive':'negative'} direction of the x-axis`;
+    case'ty':return`Translation of ${fmt(Math.abs(m.v),1)} ${u(m.v)} in the ${m.v>0?'positive':'negative'} direction of the y-axis`;
+    case'dx':return`Dilation by a factor of ${fmt(m.v,1)} from the x-axis`;
+    case'dy':return`Dilation by a factor of ${fmt(m.v,1)} from the y-axis`;
+    case'rx':return'Reflection in the x-axis';case'ry':return'Reflection in the y-axis';}}
+
+const TOOLS={
+  tx:{label:'Translation parallel to the x-axis',ask:'units',title:'Translation parallel to the x-axis'},
+  ty:{label:'Translation parallel to the y-axis',ask:'units',title:'Translation parallel to the y-axis'},
+  dx:{label:'Dilation from the x-axis',ask:'factor',title:'Dilation from the x-axis'},
+  dy:{label:'Dilation from the y-axis',ask:'factor',title:'Dilation from the y-axis'},
+  rx:{label:'Reflection in the x-axis'},
+  ry:{label:'Reflection in the y-axis'},
+  // notation mode
+  nk:{label:'f(x) + k',nt:1,ask:'any',title:'f(x) → f(x) + k',sym:'k',conv:v=>[{t:'ty',v}],show:v=>`f(x) ${v<0?'−':'+'} ${fmt(Math.abs(v),1)}`},
+  nh:{label:'f(x + h)',nt:1,ask:'any',title:'f(x) → f(x + h)',sym:'h',conv:v=>[{t:'tx',v:-v}],show:v=>`f(x ${v<0?'−':'+'} ${fmt(Math.abs(v),1)})`},
+  na:{label:'a f(x)',nt:1,ask:'nonzero',title:'f(x) → a f(x)',sym:'a',conv:v=>v>0?[{t:'dx',v}]:[{t:'dx',v:-v},{t:'rx'}].filter(m=>!(m.t==='dx'&&near(m.v,1))),show:v=>`${fmt(v,1)}f(x)`},
+  nb:{label:'f(bx)',nt:1,ask:'nonzero',title:'f(x) → f(bx)',sym:'b',conv:v=>v>0?[{t:'dy',v:1/v}]:[{t:'dy',v:-1/v},{t:'ry'}].filter(m=>!(m.t==='dy'&&near(m.v,1))),show:v=>`f(${fmt(v,1)}x)`},
+  nrx:{label:'−f(x)',nt:1,conv:()=>[{t:'rx'}],show:()=>'−f(x)'},
+  nry:{label:'f(−x)',nt:1,conv:()=>[{t:'ry'}],show:()=>'f(−x)'}
+};
+
+/* ---------- level design ---------- */
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const BASIC=['x2','x3','sqrt','recip'], ALL=['x2','x3','sqrt','recip','exp','ln','sin','cos'];
+function val(t,fn,half){const trig=FUNCS[fn].trig;
+  if(t==='tx'&&half&&!trig)return pick([1/2,-1/2,1,-1,3/2,-3/2,2,-2]);
+  if(t==='tx'&&half&&trig)return pick([PI/4,-PI/4,PI/2,-PI/2]);
+  if(t==='dy'&&half)return trig?pick([2,1/2]):pick([2,1/2,1/3]);
+  if(t==='tx')return trig?pick([PI/2,-PI/2,PI,-PI]):pick([1,2,3,4,-1,-2,-3,-4]);
+  if(t==='ty')return pick([1,2,3,-1,-2,-3]);
+  if(t==='dx')return pick([2,3,1/2,1/3]);
+  if(t==='dy')return trig?pick([2,1/2,3]):pick([2,3,1/2,1/3]);
+  return 0;}
+const mk=(fn,types)=>({fn,moves:types.map(t=>({t,v:val(t,fn)}))});
+const mv=(fn,types)=>types.map(t=>({t,v:val(t,fn,1)}));
+/* keeps the expanded inside tidy, e.g. 2x − 1 rather than 3x − 1/6 */
+function niceInner(p){if(near(p.b,0))return true;const k=-p.b/p.a;const r=ratio(k)||ratio(k/PI);return !!r&&r[1]<=4;}
+const W5=['tx','ty','dx','dy','rx','ry'];
+
+const LEVELS=[
+ {name:'Translations parallel to the y-axis',tools:['ty'],gen:i=>mk(pick([...BASIC,'exp']),['ty']),
+  instr:`A <b>translation parallel to the y-axis</b> adds the same number to every y-coordinate: (x, y) → (x, y + k).<br>A translation of 3 units in the positive direction of the y-axis maps y = f(x) to <b>y = f(x) + 3</b>.`},
+ {name:'Translations parallel to the x-axis',tools:['tx','ty'],gen:i=>mk(pick(BASIC),i<4?['tx']:shuffle(['tx','ty'])),
+  instr:`A <b>translation of h units in the positive direction of the x-axis</b> maps (x, y) → (x + h, y), and y = f(x) to <b>y = f(x − h)</b>.<br><br>Why minus? Every height on the new graph is reached h units <i>later</i> than on the old one. To get the old output f(0), the new graph needs x − h = 0, i.e. x = h.<br><br>So y = f(x + 3) is a translation of 3 units in the <b>negative</b> direction of the x-axis.`},
+ {name:'Reflections',tools:['tx','ty','rx','ry'],gen:i=>mk(pick(['x3','sqrt','exp','ln','x2','recip']),i<4?[pick(['rx','ry'])]:shuffle([pick(['rx','ry']),pick(['tx','ty'])])),
+  instr:`<b>Reflection in the x-axis:</b> (x, y) → (x, −y), so y = f(x) becomes <b>y = −f(x)</b>.<br><b>Reflection in the y-axis:</b> (x, y) → (−x, y), so y = f(x) becomes <b>y = f(−x)</b>.<br><br>Some graphs look the same after a reflection. That tells you something about their symmetry.`},
+ {name:'Dilations from the x-axis',tools:['tx','ty','dx','rx','ry'],gen:i=>mk(pick(['x2','x3','sqrt','exp','sin','cos']),i<4?['dx']:shuffle(['dx',pick(['ty','rx'])])),
+  instr:`A <b>dilation by a factor of k from the x-axis</b> multiplies every point's distance from the x-axis by k: (x, y) → (x, ky).<br>y = f(x) becomes <b>y = k f(x)</b>.<br><br>Points on the x-axis do not move.`},
+ {name:'Dilations from the y-axis',tools:W5,rider:1,gen:i=>mk(pick(['sqrt','x3','exp','ln','sin','cos']),i<4?['dy']:shuffle(['dy','tx'])),
+  instr:`A <b>dilation by a factor of k from the y-axis</b> multiplies every point's distance from the y-axis by k: (x, y) → (kx, y).<br>y = f(x) becomes <b>y = f(x/k)</b>.<br><br>So y = f(2x) is a dilation by a factor of <b>½</b> from the y-axis, not 2. Points on the y-axis do not move.<br><br><i>You may also see this described as a dilation parallel to the x-axis. It means the same thing.</i><br><br>Try ticking “Capybara rides a key point” and watch where the point goes.`},
+ {name:'Combined transformations',tools:W5,rider:1,gen:i=>mk(pick(ALL),shuffle(['tx','ty','dx','rx']).slice(0,i<4?2:3)),
+  instr:`Order matters. A dilation by a factor of 2 from the x-axis followed by a translation of 1 unit up is not the same as the translation followed by the dilation.<br><br>A good strategy: pick one point on the parent graph and work out where it has to end up.`},
+ {name:'Negative factors inside',tools:W5,rider:1,gen:i=>mk(pick(['sqrt','exp','ln','x3']),i<4?shuffle(['ry','dy']):shuffle(['ry','dy','tx'])),
+  instr:`y = f(−2x) is <b>two</b> transformations: a dilation by a factor of ½ from the y-axis and a reflection in the y-axis.<br><br>These two can be applied in either order. A translation cannot be swapped around so freely.`},
+ {name:'The full form y = A f(n(x + b)) + c',tools:W5,rider:1,gen:i=>mk(pick(ALL),shuffle(W5).slice(0,i<4?3:4)),
+  instr:`From y = f(x) to y = A f(n(x + b)) + c, one reliable sequence is:<br>1. dilation by a factor of 1/|n| from the y-axis (and a reflection in the y-axis if n &lt; 0)<br>2. translation of b units in the <b>negative</b> direction of the x-axis<br>3. dilation by a factor of |A| from the x-axis (and a reflection in the x-axis if A &lt; 0)<br>4. translation of c units parallel to the y-axis.<br><br>Point check: (x, y) → (x/n − b, Ay + c).`},
+ {name:'Backwards: back to the parent',tools:W5,rider:1,
+  gen:i=>{const fn=pick(ALL);return{fn,start:mv(fn,i<4?[pick(['tx','ty','dx','rx'])]:shuffle(['tx','ty','dx','rx']).slice(0,2)),moves:[]};},
+  instr:`This time <b>your graph has already been transformed</b>. Your job is to get it back to the parent function.<br><br>Every transformation can be undone:<br>• a translation of h units is undone by a translation of −h units<br>• a dilation by a factor of k is undone by a dilation by a factor of 1/k from the same axis<br>• a reflection undoes itself.<br><br>If there is more than one transformation, undo them in <b>reverse order</b>, like taking off your shoes before your socks.`},
+ {name:'Backwards: inside the function',tools:W5,rider:1,expand:1,ok:niceInner,
+  gen:i=>{const fn=pick(['exp','ln','sqrt','x3','x2','sin','cos']);return{fn,start:mv(fn,i<4?shuffle(['dy','tx']):shuffle(['dy','tx',pick(['dx','ty','rx'])])),moves:[]};},
+  instr:`Now the inside of the function is written out in full, e.g. y = ½e<sup>2x − 1</sup>.<br><br>Factorise the inside first: 2x − 1 = 2(x − ½). So y = ½e<sup>2(x − ½)</sup>, and you can read off how e<sup>x</sup> was transformed:<br>• dilation by a factor of ½ from the y-axis<br>• translation of ½ unit in the positive direction of the x-axis<br>• dilation by a factor of ½ from the x-axis.<br><br>Undo them in reverse order. Careful: the translation to undo is <b>½</b> unit, not 1. If you undo the dilation from the y-axis first, it becomes 1 unit. Can you see why?`},
+ {name:'Backwards: graph to graph',tools:W5,rider:1,expand:1,ok:niceInner,
+  gen:i=>{const fn=pick(ALL);return{fn,start:mv(fn,shuffle(W5).slice(0,2)),moves:mv(fn,shuffle(W5).slice(0,i<4?1:2))};},
+  instr:`Neither graph is the parent function now.<br><br>One route that always works: undo your graph back to the parent, then transform the parent into the target.<br><br>It is usually possible to do it in fewer moves. Look for what the two graphs already have in common.`},
+ {name:'Read the graph',tools:W5,rider:1,hide:1,gen:i=>mk(pick(ALL),shuffle(W5).slice(0,i<4?2:3)),
+  instr:`No target equation this time. Read the gold graph: intercepts, turning points, asymptotes, endpoints and period are all clues to the transformations.`},
+ {name:'Predict from notation',tools:['nk','nh','na','nb','nrx','nry'],rider:1,gen:i=>mk(pick(ALL),shuffle(W5).slice(0,i<4?2:3)),
+  instr:`Now the buttons are algebra, not descriptions. Here <b>f</b> means whatever your graph is right now.<br><br>Predict what each operation will do before you apply it. The log will tell you, in words, which transformation you actually applied.`}
+];
+const PER=8;
+
+/* ---------- state ---------- */
+let L=+(store.getItem('capyT_level')||0), idx=0, fn='x2', target=ID, cur=ID, disp=ID, startP=ID;
+let hist=[], logLines=[], locked=false, anim=null, slide=null, solvedHidden=false;
+let done=[];try{done=JSON.parse(store.getItem('capyT_done')||'[]');}catch(e){}
+let muted=store.getItem('capyT_mute')==='1';
+
+/* ---------- canvas ---------- */
+const cv=$('g'),ctx=cv.getContext('2d');let W,H,U,XR,YR,DPR;
+function resize(){DPR=window.devicePixelRatio||1;const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*DPR;cv.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);U=Math.min(W/18,H/13);XR=W/2/U;YR=H/2/U;draw();}
+const SX=x=>W/2+x*U, SY=y=>H/2-y*U, XW=px=>(px-W/2)/U;
+
+function grid(){
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+  ctx.lineWidth=1;ctx.strokeStyle='#eef0f3';ctx.beginPath();
+  for(let x=Math.ceil(-XR);x<=XR;x++){ctx.moveTo(SX(x),0);ctx.lineTo(SX(x),H);}
+  for(let y=Math.ceil(-YR);y<=YR;y++){ctx.moveTo(0,SY(y));ctx.lineTo(W,SY(y));}
+  ctx.stroke();
+  ctx.strokeStyle='#555';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(0,SY(0));ctx.lineTo(W,SY(0));ctx.moveTo(SX(0),0);ctx.lineTo(SX(0),H);ctx.stroke();
+  ctx.fillStyle='#777';ctx.font='12px system-ui';ctx.textAlign='center';ctx.textBaseline='top';
+  const trig=FUNCS[fn].trig;
+  if(trig){for(let k=-12;k<=12;k++){if(!k)continue;const x=k*PI/2;if(Math.abs(x)>XR-0.3)continue;
+      ctx.fillRect(SX(x)-0.5,SY(0)-4,1,8);ctx.fillText(fmt(k/2*PI,1),SX(x),SY(0)+6);}}
+  else for(let x=Math.ceil(-XR);x<=XR;x++){if(!x)continue;ctx.fillText(x,SX(x),SY(0)+4);}
+  ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let y=Math.ceil(-YR);y<=YR;y++){if(!y)continue;ctx.fillText(y,SX(0)-5,SY(y));}
+  ctx.font='italic 14px serif';ctx.textAlign='right';ctx.fillText('x',W-6,SY(0)-10);ctx.textAlign='left';ctx.fillText('y',SX(0)+6,12);
+}
+function segments(p){const segs=[];let s=null,py=null;
+  for(let px=-1;px<=W+1;px+=1){const y=evalP(p,fn,XW(px));
+    if(isNaN(y)||Math.abs(y)>YR*4||(py!==null&&Math.abs(y-py)>YR*1.5)){if(s&&s.length>1)segs.push(s);s=null;py=null;if(isNaN(y)||Math.abs(y)>YR*4)continue;}
+    if(!s)s=[];s.push([px,SY(y)]);py=y;}
+  if(s&&s.length>1)segs.push(s);return segs;}
+function plot(p,color,w,alpha){if(Math.abs(p.a)<0.03)return;
+  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=w;ctx.globalAlpha=alpha;ctx.lineJoin=ctx.lineCap='round';
+  for(const s of segments(p)){ctx.beginPath();ctx.moveTo(s[0][0],s[0][1]);for(const q of s)ctx.lineTo(q[0],q[1]);ctx.stroke();}
+  ctx.restore();}
+
+function drawCapy(c,x,y,ang,s,o={}){
+  c.save();c.translate(x,y);c.rotate(ang);c.scale(s,s);
+  c.fillStyle='#6f4a2a';c.fillRect(-17,-7,6,8);c.fillRect(9,-7,6,8);
+  c.fillStyle='#a8743f';c.beginPath();c.ellipse(0,-17,24,13,0,0,PI*2);c.fill();
+  c.beginPath();c.ellipse(22,-25,13,10,-0.15,0,PI*2);c.fill();
+  c.fillStyle='#8f5f33';c.beginPath();c.ellipse(32,-23,6.5,7.5,0,0,PI*2);c.fill();
+  c.fillStyle='#6f4a2a';c.beginPath();c.arc(15,-34,3.6,0,PI*2);c.fill();
+  c.fillStyle='#1e1a16';
+  if(o.sleepy){c.fillRect(21,-28,5,1.4);}else{c.beginPath();c.arc(24,-28,1.9,0,PI*2);c.fill();}
+  c.beginPath();c.arc(36,-25,1.1,0,PI*2);c.fill();
+  if(o.yuzu){c.fillStyle='#f2b630';c.beginPath();c.arc(18,-41,6.5,0,PI*2);c.fill();c.fillStyle='#5a8f3a';c.fillRect(17,-49,2,3.5);}
+  c.restore();}
+
+function draw(){if(!W)return;grid();
+  plot(target,'#e0a21b',7,0.55);
+  plot(disp,'#2f6fde',3,1);
+  if($('rider').checked&&LEVELS[L].rider&&!slide&&Math.abs(disp.a)>0.03){
+    const k=FUNCS[fn].key,px=disp.a*k[0]+disp.b,py=disp.c*k[1]+disp.d;
+    if(Math.abs(px)<XR&&Math.abs(py)<YR){
+      ctx.fillStyle='#2f6fde';ctx.beginPath();ctx.arc(SX(px),SY(py),5,0,PI*2);ctx.fill();
+      drawCapy(ctx,SX(px)-10,SY(py)-3,0,0.55);
+      ctx.fillStyle='#2f6fde';ctx.font='13px system-ui';ctx.textAlign='left';ctx.textBaseline='bottom';
+      ctx.fillText(`(${fmt(px,1)}, ${fmt(py,1)})`,SX(px)+10,SY(py)-26);}}
+  if(slide)drawCapy(ctx,slide.x,slide.y,slide.ang,0.85);
+}
+
+/* ---------- comparison ---------- */
+function sameGraph(p,q){let bad=0;const xr=Math.min(XR,9);
+  for(let x=-xr;x<=xr;x+=0.04){const y1=evalP(p,fn,x),y2=evalP(q,fn,x);const d1=!isNaN(y1),d2=!isNaN(y2);
+    if(d1!==d2){bad++;continue;} if(!d1)continue;
+    if(Math.min(Math.abs(y1),Math.abs(y2))>YR*3)continue;
+    if(Math.abs(y1-y2)>1e-4*(1+Math.abs(y1)))bad++;}
+  return bad<=2;}
+function distance(p,q){let s=0,n=0;for(let x=-XR;x<=XR;x+=0.1){const y1=evalP(p,fn,x),y2=evalP(q,fn,x);
+  if(isNaN(y1)||isNaN(y2)){if(isNaN(y1)!==isNaN(y2)){s+=3;n++;}continue;}s+=Math.min(Math.abs(y1-y2),10);n++;}return n?s/n:99;}
+function visible(p){let v=0,n=0;for(let x=-XR;x<=XR;x+=0.1){n++;const y=evalP(p,fn,x);if(!isNaN(y)&&Math.abs(y)<YR*0.9)v++;}return v/n>0.25;}
+
+/* ---------- problems ---------- */
+function newProblem(){const lv=LEVELS[L];let st=ID,tg=ID;
+  for(let tries=0;tries<400;tries++){
+    const g=lv.gen(idx);fn=g.fn;
+    let p=ID;for(const m of g.moves)p=applyMove(p,m);
+    let s0=ID;if(g.start)for(const m of g.start)s0=applyMove(s0,m);
+    if(lv.ok&&!(lv.ok(p)&&lv.ok(s0)))continue;
+    if(!sameGraph(p,s0)&&visible(p)&&visible(s0)){tg=p;st=s0;break;}}
+  target=tg;startP=st;cur=disp=st;hist=[];logLines=[];locked=false;solvedHidden=false;render();draw();}
+
+function render(){
+  const lv=LEVELS[L],ex=!!lv.expand;
+  $('lvlName').innerHTML=`Level ${L+1} of ${LEVELS.length}<b>${lv.name}</b>`;
+  $('dots').innerHTML=Array.from({length:PER},(_,i)=>`<div class="dot ${i<idx?'done':i===idx?'now':''}"></div>`).join('');
+  $('eqF').innerHTML=`<small>Parent function</small>`+eqHTML(ID,fn).replace('y =','f(x) =');
+  $('eqT').innerHTML=(lv.hide&&!solvedHidden)?'y = ?':eqHTML(target,fn,ex);
+  $('eqC').innerHTML=eqHTML(cur,fn,ex);
+  $('curLbl').textContent=(startP!==ID&&!hist.length)?'Your graph (starting point)':'Your graph';
+  $('tools').innerHTML=lv.tools.map(t=>`<button data-t="${t}" class="${TOOLS[t].nt?'nt':''}">${TOOLS[t].label}</button>`).join('');
+  $('tools').querySelectorAll('button').forEach(b=>b.onclick=()=>tool(b.dataset.t));
+  $('log').innerHTML=logLines.length?logLines.map(l=>`<div class="${l.ok?'ok':''}">${l.h}</div>`).join(''):'<div style="color:var(--muted)">Your moves will appear here.</div>';
+  $('log').scrollTop=1e6;
+  $('instr').innerHTML=lv.instr;
+  $('riderRow').style.display=lv.rider?'flex':'none';
+  $('undoBtn').disabled=!hist.length||locked;
+  $('levelSel').value=L;
+}
+
+/* ---------- input ---------- */
+function parseVal(raw){
+  let s=String(raw).toLowerCase().replace(/[\s*×]/g,'').replace(/[−–—]/g,'-').replace(/π/g,'p').replace(/pi/g,'p');
+  let sign=1; while(s[0]==='+'||s[0]==='-'){if(s[0]==='-')sign=-sign;s=s.slice(1);}
+  if(!/^[0-9./p]+$/.test(s))return NaN;
+  const pc=(s.match(/p/g)||[]).length; if(pc>1)return NaN;
+  const hasPi=pc===1;
+  if(hasPi&&/\/p/.test(s))return NaN;
+  s=s.replace('p','');
+  const parts=s.split('/'); if(parts.length>2)return NaN;
+  if(parts.length===2&&parts[1]==='')return NaN;
+  const num=parts[0]===''?(hasPi?1:NaN):Number(parts[0]);
+  const den=parts.length===2?Number(parts[1]):1;
+  if(!isFinite(num)||!isFinite(den)||den===0)return NaN;
+  return sign*num*(hasPi?PI:1)/den;}
+function decimalNearPi(raw,v){
+  if(!FUNCS[fn].trig||!/\./.test(raw)||/p|π/i.test(raw)||isNaN(v))return false;
+  const k=Math.round(v/(PI/12)); return k!==0&&Math.abs(v-k*PI/12)<0.01;}
+let askCb=null;
+function ask(t,cb){const T=TOOLS[t];$('askTitle').textContent=T.title;
+  $('askHint').textContent=T.ask==='units'?'How many units? Use a negative number for the negative direction.':
+    T.ask==='factor'?'Scale factor (a positive number, e.g. 2 or 1/2)':`Value of ${T.sym} (e.g. 3, −2, 1/2, π/2)`;
+  $('askIn').value='';$('askErr').textContent='';askCb=raw=>{const v=parseVal(raw);
+    if(decimalNearPi(raw,v))return'Use π rather than a decimal. For example, type π/2 rather than 1.57.';
+    if(isNaN(v))return'Try a number such as 3, −2, 1/2 or π/2.';
+    if(T.ask==='factor'&&v<=0)return v===0?'A dilation factor of 0 would flatten the graph.':'Dilation factors are positive. Use a reflection for the negative part.';
+    if(T.ask==='nonzero'&&v===0)return'0 would flatten the graph.';
+    if(v===0)return'0 would not move the graph.';
+    cb(v);return null;};
+  $('askOv').classList.add('show');setTimeout(()=>$('askIn').focus(),30);}
+function submitAsk(){const e=askCb($('askIn').value);if(e)$('askErr').textContent=e;else $('askOv').classList.remove('show');}
+$('askOk').onclick=submitAsk;$('askIn').onkeydown=e=>{if(e.key==='Enter')submitAsk();if(e.key==='Escape')$('askOv').classList.remove('show');};
+$('askCancel').onclick=()=>$('askOv').classList.remove('show');
+const ins=s=>{const i=$('askIn');i.value+=s;i.focus();};
+$('piBtn').onclick=()=>ins('π');$('slashBtn').onclick=()=>ins('/');
+$('minusBtn').onclick=()=>{const i=$('askIn');const t=i.value.trim();i.value=/^[-−]/.test(t)?t.slice(1):'−'+t;i.focus();};
+
+function tool(t){if(locked||anim)return;const T=TOOLS[t];
+  const go=v=>{
+    let moves,line;
+    if(T.nt){moves=T.conv(v);line=`<b>${T.show(v)}</b>: ${moves.map(words).join(', then ')}`;}
+    else{moves=[{t,v}];line=words(moves[0]);}
+    doMoves(moves,line);};
+  if(T.ask)ask(t,go);else go(0);}
+
+function doMoves(moves,line){
+  const before=cur;let p=cur;for(const m of moves)p=applyMove(p,m);
+  hist.push({p:cur,n:logLines.length});logLines.push({h:line});cur=p;
+  render();animate(before,p,()=>{
+    if(sameGraph(cur,target))success();
+    else if(distance(cur,target)>distance(before,target)+0.05)huh();});}
+
+function animate(from,to,cb){const t0=performance.now(),D=650;
+  anim=true;(function step(now){let k=Math.min(1,(now-t0)/D);k=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    disp={a:from.a+(to.a-from.a)*k,b:from.b+(to.b-from.b)*k,c:from.c+(to.c-from.c)*k,d:from.d+(to.d-from.d)*k};draw();
+    if(k<1)requestAnimationFrame(step);else{disp=to;anim=null;draw();render();cb&&cb();}})(t0);}
+
+/* ---------- reactions ---------- */
+const cc=$('corner').getContext('2d');
+function corner(sleepy){cc.clearRect(0,0,192,124);drawCapy(cc,80,110,0,2.3,{sleepy});}
+function huh(){const c=$('corner');corner(false);c.classList.add('huh');setTimeout(()=>{c.classList.remove('huh');corner(true);},1300);}
+
+/* Audio: phones only allow sound once the page has been touched, so the
+   audio context is created and unlocked on the first tap or key press. */
+let AC=null;
+function unlockAudio(){try{
+  if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();
+  if(AC.state==='suspended')AC.resume();
+  const b=AC.createBuffer(1,1,22050),s=AC.createBufferSource();s.buffer=b;s.connect(AC.destination);s.start(0);
+}catch(e){}}
+['pointerdown','touchend','keydown'].forEach(ev=>window.addEventListener(ev,unlockAudio,{passive:true}));
+function ping(){if(muted||!AC)return;try{if(AC.state==='suspended')AC.resume();
+  [880,1320].forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;
+    const t=AC.currentTime+i*0.09;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.18,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+0.5);
+    o.connect(g).connect(AC.destination);o.start(t);o.stop(t+0.55);});}catch(e){}}
+
+function success(){locked=true;solvedHidden=true;
+  logLines.push({h:`✓ Matched in ${hist.length} move${hist.length===1?'':'s'}`,ok:1});render();ping();
+  $('stage').classList.remove('flash');void $('stage').offsetWidth;$('stage').classList.add('flash');
+  const next=()=>{idx++;if(idx>=PER)levelDone();else newProblem();};
+  if(Math.random()<0.3)capySlide(next);else setTimeout(next,1300);}
+
+function capySlide(cb){
+  const segs=segments(cur);if(!segs.length){cb();return;}
+  const path=segs.reduce((a,b)=>b.length>a.length?b:a);
+  const cum=[0];for(let i=1;i<path.length;i++)cum.push(cum[i-1]+Math.hypot(path[i][0]-path[i-1][0],path[i][1]-path[i-1][1]));
+  const total=cum[cum.length-1];let s=0,v=140,j=0,last=performance.now(),t0=last;
+  (function step(now){const dt=Math.min(0.05,(now-last)/1000);last=now;
+    while(j<path.length-2&&cum[j+1]<s)j++;
+    const p0=path[j],p1=path[Math.min(j+3,path.length-1)];const dx=p1[0]-p0[0],dy=p1[1]-p0[1],len=Math.hypot(dx,dy)||1;
+    v+=1100*(dy/len)*dt;v=Math.max(70,Math.min(900,v));s+=v*dt;
+    const ang=Math.atan2(dy,dx);
+    slide={x:p0[0]+Math.sin(ang)*2,y:p0[1]-Math.cos(ang)*2,ang};draw();
+    const off=p0[1]<-40||p0[1]>H+40;
+    if(s<total&&!off&&now-t0<4500)requestAnimationFrame(step);else{slide=null;draw();setTimeout(cb,250);}})(last);}
+
+/* ---------- hot spring ---------- */
+let springRAF=null;
+function levelDone(){if(!done.includes(L)){done.push(L);store.setItem('capyT_done',JSON.stringify(done));}
+  $('springTitle').textContent=L<LEVELS.length-1?`Level ${L+1} complete`:'All levels complete';
+  $('springNext').textContent=L<LEVELS.length-1?'Next level':'Play again';
+  $('springOv').classList.add('show');const n=Math.max(1,done.length);
+  const c=$('spring').getContext('2d'),w=1040,h=460;let t=0;
+  (function frame(){t+=0.016;c.clearRect(0,0,w,h);
+    const sky=c.createLinearGradient(0,0,0,h);sky.addColorStop(0,'#fbe9cf');sky.addColorStop(1,'#f3d9b4');c.fillStyle=sky;c.fillRect(0,0,w,h);
+    c.fillStyle='#8e8a80';for(let i=0;i<14;i++){c.beginPath();c.ellipse(70+i*70,300+Math.sin(i*1.7)*18,48,30,0,0,PI*2);c.fill();}
+    c.fillStyle='#7fb6c9';c.beginPath();c.ellipse(w/2,310,440,95,0,0,PI*2);c.fill();
+    for(let k=0;k<n;k++){const r=Math.floor(k/5),col=k%5,inRow=Math.min(5,n-r*5);
+      const x=w/2+(col-(inRow-1)/2)*150-30,y=290+r*45+Math.sin(t*1.5+k)*2;drawCapy(c,x,y,0,2.1,{yuzu:k%3===0,sleepy:k%2===1});}
+    c.save();c.beginPath();c.rect(0,292,w,h);c.clip();c.globalAlpha=0.82;c.fillStyle='#7fb6c9';c.beginPath();c.ellipse(w/2,310,440,95,0,0,PI*2);c.fill();c.restore();
+    c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=5;c.lineCap='round';
+    for(let i=0;i<6;i++){const x0=220+i*120,ph=(t*0.6+i*0.37)%1;c.globalAlpha=1-ph;c.beginPath();
+      for(let y=0;y<90;y+=4){const yy=230-ph*120-y;c.lineTo(x0+Math.sin(y/12+t*2+i)*9,yy);}c.stroke();}
+    c.globalAlpha=1;springRAF=requestAnimationFrame(frame);})();}
+$('springNext').onclick=()=>{cancelAnimationFrame(springRAF);$('springOv').classList.remove('show');
+  setLevel(L<LEVELS.length-1?L+1:0);};
+
+/* ---------- controls ---------- */
+function setLevel(l){L=l;idx=0;store.setItem('capyT_level',L);$('instr').classList.remove('show');newProblem();}
+$('levelSel').innerHTML=LEVELS.map((l,i)=>`<option value="${i}">Level ${i+1}: ${l.name}</option>`).join('');
+$('levelSel').onchange=e=>setLevel(+e.target.value);
+$('undoBtn').onclick=()=>{if(!hist.length||locked||anim)return;const h=hist.pop();const from=cur;cur=h.p;logLines.length=h.n;render();animate(from,cur);};
+$('resetBtn').onclick=()=>{if(locked||anim)return;const from=cur;cur=startP;hist=[];logLines=[];render();animate(from,startP);};
+$('skipBtn').onclick=()=>{if(locked||anim)return;newProblem();};
+$('instrBtn').onclick=()=>$('instr').classList.toggle('show');
+$('rider').onchange=draw;
+const setMute=()=>{$('muteBtn').textContent=muted?'🔕':'🔔';store.setItem('capyT_mute',muted?'1':'0');};
+$('muteBtn').onclick=()=>{muted=!muted;setMute();};setMute();
+window.addEventListener('resize',resize);
+window.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();$('undoBtn').click();}});
+
+if(!(L>=0&&L<LEVELS.length))L=0;
+corner(true);resize();newProblem();
+
+/* ---------- offline support ---------- */
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+</script>
+</body>
+</html>
