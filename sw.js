@@ -1,6 +1,6 @@
 // Offline support. Change VERSION whenever you upload a new index.html,
 // so that phones and laptops pick up the new version.
-const VERSION = 'transformations-v1';
+const VERSION = 'transformations-v2';
 const FILES = [
   './',
   './index.html',
